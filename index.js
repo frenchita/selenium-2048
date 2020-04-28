@@ -13,9 +13,16 @@ async function example2(){
 example2();
 */
 
+const MOVEUP = 1;
+const MOVEDOWN = 2;
+const MOVELEFT = 3;
+const MOVERIGHT = 4
+
+var dataset = [];
+var dataset_history = [];
 
 
-async function play2048(){
+let play2048 = async() =>{
     let driver = await new Builder().forBrowser("firefox").build();
     
     await driver.get("https://play2048.co/");
@@ -38,31 +45,44 @@ async function play2048(){
     
     let lost = false;
     let vuelta = 0;
-    let movimiento = 0;
 
     do{
         vuelta++;
-        //console.log('vuelta ' + vuelta);
+        console.log('vuelta ' + vuelta);
 
         var elements = await driver.findElements(By.className("tile"));
-        var dataset = await getDataset(elements);
-        
+        dataset = await getDataset(elements);
+
 
         if(dataset !== undefined){
 
-            console.log(dataset);
-            
-            for(i=0; i<15;i++){
-                container.sendKeys(Key.ARROW_UP);
-                container.sendKeys(Key.ARROW_RIGHT);
-            } 
-    
-            container.sendKeys(Key.ARROW_LEFT);
-            container.sendKeys(Key.ARROW_UP);
-            container.sendKeys(Key.ARROW_RIGHT);
+            //console.log(dataset);
+            dataset_history.push(dataset);
+
+            let movement = await getMovement();
+
+            switch (movement) {
+                case MOVELEFT:
+                    await container.sendKeys(Key.ARROW_LEFT);
+                    break;
+                case MOVERIGHT:
+                    await container.sendKeys(Key.ARROW_RIGHT);
+                    break;
+                case MOVEUP:
+                    await container.sendKeys(Key.ARROW_UP);
+                    break;
+                case MOVEDOWN:
+                    await container.sendKeys(Key.ARROW_DOWN);
+                    break;    
+            }
+
+
+        }else{
+            console.log("No hay dataset para mover")
         }
 
         /*
+
         //funciona
         var promise = driver.findElement(By.className("retry-button"))
         
@@ -73,29 +93,43 @@ async function play2048(){
         */
 
 
+
     }while(!lost); 
     
     
-
-
-
-
-
-    
-
-
-
-    //margen_derencho(container);
-    
-    
-    
-    //await driver.findElement(By.name("q")).sendKeys("Algo", Key.RETURN);
-    console.log("ok")
 }
 
 play2048();
 
-async function getDataset(elements){
+
+/**
+ * 
+ * @param {*} dataset 
+ * @returns movement
+ */
+ let getMovement = async() =>{
+
+    if(!isRowFull(1)){
+        return (areEqual(dataset, dataset_history[dataset_history.length -2]))? MOVERIGHT : MOVEUP;
+    }else{
+        return (areEqual(dataset, dataset_history[dataset_history.length -2]))? MOVERIGHT : MOVELEFT;
+    }
+
+}
+
+/**
+ * 
+ * @param {number} row 
+ */
+let isRowFull = row =>{
+    return dataset.slice((row*4)-4,row*4).every(element => element > 0);
+}
+
+
+
+
+
+let getDataset = async(elements) =>{
     var promise_arrays = [];
     
     elements.forEach(function(element, index) {
@@ -125,25 +159,13 @@ async function getDataset(elements){
         })
         
         return dataset;
+
     }).catch(function(e){
         //Esta moviendo
     });
 }
 
 
-
-async function margen_derencho(container){
-    console.log("margen derecho")
-    for(i=0; i<100;i++){
-        await container.sendKeys(Key.ARROW_UP);
-        await container.sendKeys(Key.ARROW_RIGHT);
-    }
-}
-
-async function left(container){
-    console.log("left")
-    for(i=0; i<4;i++){
-        await container.sendKeys(Key.ARROW_LEFT);
-        await container.sendKeys(Key.ARROW_LEFT);
-    }
+let areEqual = (array1, array2) =>{
+    return (JSON.stringify(array1)==JSON.stringify(array2));
 }
